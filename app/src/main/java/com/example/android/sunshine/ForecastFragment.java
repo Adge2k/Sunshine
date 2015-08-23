@@ -67,12 +67,12 @@ public class ForecastFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         rootView = inflater.inflate(R.layout.fragment_main, container, false);
-       /* String[] weekForecast = {"Today - Sunny", "Tomorrow - Foggy",
+       String[] weekForecast = {"Today - Sunny", "Tomorrow - Foggy",
                 "Wed - Rainy", "Thurs - snow", "Fri - Showers", "Sat - Sunny"};
         mForecast = new ArrayAdapter<String>(getContext(), R.layout.list_item_forecast,
                 R.id.list_item_forecast_textview,weekForecast);
         ListView listView = (ListView)rootView.findViewById(R.id.listview_forecast);
-        listView.setAdapter(mForecast);*/
+        listView.setAdapter(mForecast);
         FetchWeatherTask fw = new FetchWeatherTask();
         fw.execute("M1J3N2");
 
@@ -265,11 +265,10 @@ public class ForecastFragment extends Fragment {
         }
 
         @Override
-        protected void onPostExecute(String[] result) {
-            mForecast = new ArrayAdapter<String>(getContext(), R.layout.list_item_forecast,
-                    R.id.list_item_forecast_textview,result);
-            ListView listView = (ListView)rootView.findViewById(R.id.listview_forecast);
-            listView.setAdapter(mForecast);
+        protected void onPostExecute(String[] results) {
+            if(results!=null){
+                    mForecast.addAll(results);
+            }
         }
     }
 }
