@@ -1,5 +1,6 @@
 package com.example.android.sunshine;
 
+import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -12,9 +13,12 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-
+import android.widget.TextView;
+import android.widget.Toast;
+import android.widget.AdapterView.OnItemClickListener;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -26,12 +30,15 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * A placeholder fragment containing a simple view.
  */
 public class ForecastFragment extends Fragment {
-    ArrayAdapter<String> mForecast;
+    public ArrayAdapter<String> mForecast;
     View rootView;
 
     public ForecastFragment() {
@@ -67,26 +74,45 @@ public class ForecastFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         rootView = inflater.inflate(R.layout.fragment_main, container, false);
-       String[] weekForecast = {"Today - Sunny", "Tomorrow - Foggy",
-                "Wed - Rainy", "Thurs - snow", "Fri - Showers", "Sat - Sunny"};
+        String[] data = {
+                "Mon 6/23 - Sunny - 31/17",
+                "Tue 6/24 - Foggy - 21/8",
+                "Wed 6/25 - Cloudy - 22/17",
+                "Thurs 6/26 - Rainy - 18/11",
+                "Fri 6/27 - Foggy - 21/10",
+                "Sat 6/28 - TRAPPED IN WEATHERSTATION - 23/18",
+                "Sun 6/29 - Sunny - 20/7"
+        };
+        List<String> weekForecast = new ArrayList<>(Arrays.asList(data));
         mForecast = new ArrayAdapter<String>(getContext(), R.layout.list_item_forecast,
                 R.id.list_item_forecast_textview,weekForecast);
         ListView listView = (ListView)rootView.findViewById(R.id.listview_forecast);
         listView.setAdapter(mForecast);
-        FetchWeatherTask fw = new FetchWeatherTask();
-        fw.execute("M1J3N2");
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> adapterView, View view, int position, long l) {
+                String forecast = mForecast.getItem(position);
+                Intent details = new Intent(getActivity(), DetailActivity.class).putExtra(Intent.EXTRA_TEXT, forecast);
+                startActivity(details);
+                //Toast.makeText(getActivity(), forecast, Toast.LENGTH_SHORT).show();
+            }
+        });
+
+       //FetchWeatherTask fw = new FetchWeatherTask();
+       //fw.execute("M1J3N2");
 
 
 
         return rootView;
     }
 
-    public class FetchWeatherTask extends AsyncTask<String, Void, String[]>{
+    public class FetchWeatherTask extends AsyncTask<String, Void, String[]> {
+
         private final String LOG_TAG = FetchWeatherTask.class.getSimpleName();
 
         /* The date/time conversion code is going to be moved outside the asynctask later,
-        * so for convenience we're breaking it out into its own method now.
-        */
+         * so for convenience we're breaking it out into its own method now.
+         */
         private String getReadableDateString(long time){
             // Because the API returns a unix timestamp (measured in seconds),
             // it must be converted to milliseconds in order to be converted to valid date.
@@ -178,9 +204,14 @@ public class ForecastFragment extends Fragment {
             return resultStrs;
 
         }
-
         @Override
-        protected String[] doInBackground(String... params){
+        protected String[] doInBackground(String... params) {
+
+            // If there's no zip code, there's nothing to look up.  Verify size of params.
+            if (params.length == 0) {
+                return null;
+            }
+
             // These two need to be declared outside the try/catch
             // so that they can be closed in the finally block.
             HttpURLConnection urlConnection = null;
@@ -188,6 +219,7 @@ public class ForecastFragment extends Fragment {
 
             // Will contain the raw JSON response as a string.
             String forecastJsonStr = null;
+
             String format = "json";
             String units = "metric";
             int numDays = 7;
@@ -196,19 +228,21 @@ public class ForecastFragment extends Fragment {
                 // Construct the URL for the OpenWeatherMap query
                 // Possible parameters are avaiable at OWM's forecast API page, at
                 // http://openweathermap.org/API#forecast
-                final String FORECAST_BASE_URL ="http://api.openweathermap.org/data/2.5/forecast/daily?";
+                final String FORECAST_BASE_URL =
+                        "http://api.openweathermap.org/data/2.5/forecast/daily?";
                 final String QUERY_PARAM = "q";
                 final String FORMAT_PARAM = "mode";
                 final String UNITS_PARAM = "units";
                 final String DAYS_PARAM = "cnt";
+
                 Uri builtUri = Uri.parse(FORECAST_BASE_URL).buildUpon()
                         .appendQueryParameter(QUERY_PARAM, params[0])
                         .appendQueryParameter(FORMAT_PARAM, format)
                         .appendQueryParameter(UNITS_PARAM, units)
                         .appendQueryParameter(DAYS_PARAM, Integer.toString(numDays))
                         .build();
+
                 URL url = new URL(builtUri.toString());
-                Log.v(LOG_TAG, "Built URI " + builtUri.toString());
 
                 // Create the request to OpenWeatherMap, and open the connection
                 urlConnection = (HttpURLConnection) url.openConnection();
@@ -242,7 +276,7 @@ public class ForecastFragment extends Fragment {
                 // If the code didn't successfully get the weather data, there's no point in attemping
                 // to parse it.
                 return null;
-            }  finally{
+            } finally {
                 if (urlConnection != null) {
                     urlConnection.disconnect();
                 }
@@ -254,20 +288,24 @@ public class ForecastFragment extends Fragment {
                     }
                 }
             }
-            try{
+
+            try {
                 return getWeatherDataFromJson(forecastJsonStr, numDays);
-            }catch (JSONException e) {
+            } catch (JSONException e) {
                 Log.e(LOG_TAG, e.getMessage(), e);
                 e.printStackTrace();
-                return null;
             }
-            //return null;
+
+            // This will only happen if there was an error getting or parsing the forecast.
+            return null;
         }
 
         @Override
-        protected void onPostExecute(String[] results) {
-            if(results!=null){
-                    mForecast.addAll(results);
+        protected void onPostExecute(String[] result) {
+            if (result != null) {
+                mForecast.clear();
+                mForecast.addAll(result);
+                // New data is back from the server.  Hooray!
             }
         }
     }
