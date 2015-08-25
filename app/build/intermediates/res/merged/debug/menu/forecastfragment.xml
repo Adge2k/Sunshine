@@ -5,4 +5,5 @@
         android:title="@string/action_refresh"
         android:orderInCategory="1"
         app:showAsAction="never" />
+
 </menu><!-- From: file:/C:/Users/Administrator/AndroidStudioProjects/Sunshine/app/src/main/res/menu/forecastfragment.xml -->

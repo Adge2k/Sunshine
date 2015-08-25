@@ -54,6 +54,7 @@ public class ForecastFragment extends Fragment {
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         inflater.inflate(R.menu.forecastfragment, menu);
+        inflater.inflate(R.menu.menu_settings, menu);
     }
 
     @Override
@@ -65,6 +66,11 @@ public class ForecastFragment extends Fragment {
         int id = item.getItemId();
         if (id == R.id.action_refresh) {
             fw.execute("M1J3N2");
+            return true;
+        }
+        if(id== R.id.action_settings){
+            Intent intent = new Intent(getContext(), SettingsActivity.class);
+            startActivity(intent);
             return true;
         }
         return super.onOptionsItemSelected(item);
